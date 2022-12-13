@@ -1,0 +1,93 @@
+name: Unit Test
+on:
+  pull_request:
+    branches: ["main"]
+jobs:
+  build:
+    environment: dev
+    runs-on: ubuntu-latest
+    env:
+      MY_KEY: ${{ secrets.DATABASE_URL }}
+    strategy:
+      matrix:
+        node-version: [16.x]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Detect package manager
+        id: detect-package-manager
+        run: |
+          if [ -f "${{ github.workspace }}/yarn.lock" ]; then
+            echo "::set-output name=manager::yarn"
+            echo "::set-output name=command::install"
+            echo "::set-output name=runner::yarn"
+            exit 0
+          elif [ -f "${{ github.workspace }}/package.json" ]; then
+            echo "::set-output name=manager::npm"
+            echo "::set-output name=command::ci"
+            echo "::set-output name=runner::npx --no-install"
+            exit 0
+          else
+            echo "Unable to determine packager manager"
+            exit 1
+          fi
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: ${{ steps.detect-package-manager.outputs.manager }}
+      - name: Restore cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+      - name: Install dependencies
+        run: ${{ steps.detect-package-manager.outputs.manager }} ${{ steps.detect-package-manager.outputs.command }}
+      - name: Type Check
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: ${{ steps.detect-package-manager.outputs.runner }} typecheck
+      - name: Build
+        env:
+          CI: false
+        run: ${{ steps.detect-package-manager.outputs.runner }} build
+      - name: Unit Test
+        env:
+          NODE_OPTIONS: "--max_old_space_size=4096"
+        run: ${{ steps.detect-package-manager.outputs.runner }} test --collectCoverage
+      - name: Code Coverage Summary
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: ./coverage/cobertura-coverage.xml
+          badge: true
+          fail_below_min: true
+          format: markdown
+          hide_branch_rate: false
+          hide_complexity: true
+          indicators: true
+          output: both
+          thresholds: "60 80"
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          append: true
+          path: code-coverage-results.md
+      - name: if fail
+        uses: actions/github-script@v6.1.0
+        with:
+          github-token: ${{github.token}}
+          script: |
+            const ref = "${{github.ref}}"
+            const pull_number = Number(ref.split("/")[2])
+            await github.pulls.createReview({
+              ...context.repo,
+              pull_number,
+              body: "Unit test failed.",
+              event: "REQUEST_CHANGES"
+            })
+        if: failure()
