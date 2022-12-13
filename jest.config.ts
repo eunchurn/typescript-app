@@ -49,6 +49,7 @@ const jestSetting: JestConfigWithTsJest = {
       },
     ],
   },
+  coverageReporters: ["html", "text", "text-summary", "cobertura"],
 };
 
 export default jestSetting;
