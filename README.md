@@ -3,3 +3,11 @@
 # TypeScript app starter
 
 Starter kit TypeScript project.
+
+- TypeScript
+- ESLint
+- Prettier
+- Jest setup
+- Code coverage comment
+- Module Aliases
+- Dotenv CLI environment
