@@ -7,7 +7,7 @@ jobs:
     environment: dev
     runs-on: ubuntu-latest
     env:
-      MY_KEY: ${{ secrets.DATABASE_URL }}
+      MY_KEY: hello_ci # ${{ secrets.MY_KEY }}
     strategy:
       matrix:
         node-version: [16.x]
