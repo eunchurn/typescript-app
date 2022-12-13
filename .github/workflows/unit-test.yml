@@ -52,10 +52,6 @@ jobs:
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: ${{ steps.detect-package-manager.outputs.runner }} typecheck
-      - name: Build
-        env:
-          CI: false
-        run: ${{ steps.detect-package-manager.outputs.runner }} build
       - name: Unit Test
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
@@ -63,7 +59,7 @@ jobs:
       - name: Code Coverage Summary
         uses: irongut/CodeCoverageSummary@v1.3.0
         with:
-          filename: ./coverage/cobertura-coverage.xml
+          filename: ./coverage/clover.xml
           badge: true
           fail_below_min: true
           format: markdown
@@ -72,6 +68,10 @@ jobs:
           indicators: true
           output: both
           thresholds: "60 80"
+      - name: Build
+        env:
+          CI: false
+        run: ${{ steps.detect-package-manager.outputs.runner }} build
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         if: github.event_name == 'pull_request'
