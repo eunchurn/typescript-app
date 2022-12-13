@@ -77,17 +77,3 @@ jobs:
           recreate: true
           append: true
           path: code-coverage-results.md
-      - name: if fail
-        uses: actions/github-script@v6.1.0
-        with:
-          github-token: ${{github.token}}
-          script: |
-            const ref = "${{github.ref}}"
-            const pull_number = Number(ref.split("/")[2])
-            await github.pulls.createReview({
-              ...context.repo,
-              pull_number,
-              body: "Unit test failed.",
-              event: "REQUEST_CHANGES"
-            })
-        if: failure()
